@@ -17,6 +17,7 @@
   */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
+#include <ring_buffer.h>
 #include "main.h"
 #include "rng.h"
 #include "tim.h"
@@ -35,7 +36,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define UART_BUFFER_LEN	32
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -46,7 +47,9 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-char uart_buffer[UART_BUFFER_LEN];
+Dht22_t uart_buffer[BUFFER_SIZE];
+Dht22_t dht_tmp_data;
+RingBuffer_t cb;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -96,6 +99,7 @@ int main(void)
   MX_RNG_Init();
   /* USER CODE BEGIN 2 */
   HAL_TIM_Base_Start_IT(&htim3);
+  buffer_init(&cb);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -105,11 +109,18 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  float Tempt = (float)HAL_RNG_GetRandomNumber(&hrng)/(float)UINT32_MAX;
-	  float Humid = (float)HAL_RNG_GetRandomNumber(&hrng)/(float)UINT32_MAX;
-
-	  sprintf(uart_buffer, "Tempt: %.02f, Humid: %.2f !!!\r\n", Tempt, Humid); //Data to send
-	  HAL_UART_Transmit(&huart3, (uint8_t*)uart_buffer, sizeof(uart_buffer), 10);// Sending in normal mode
+	  dht_tmp_data.Tempt = (float)HAL_RNG_GetRandomNumber(&hrng)/(float)UINT32_MAX;
+	  dht_tmp_data.Humid = (float)HAL_RNG_GetRandomNumber(&hrng)/(float)UINT32_MAX;
+    if (buffer_is_full(&cb)) {
+      //buffer is full, let's send to esp32 first
+      int i = 0;
+      while(!buffer_is_empty(&cb)) {
+        uart_buffer[i++] = buffer_read(&cb);
+      }
+      HAL_UART_Transmit(&huart3, (uint8_t*)uart_buffer, sizeof(uart_buffer), 10);// Sending in normal mode
+    } else {
+      buffer_write(&cb, dht_tmp_data);
+    }	  
 	  HAL_Delay(10);
 	  HAL_SuspendTick();
 	  HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON,PWR_SLEEPENTRY_WFI);
