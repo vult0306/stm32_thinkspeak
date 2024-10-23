@@ -1,1 +1,2 @@
-build
+esp32/build
+stm32/Debug
