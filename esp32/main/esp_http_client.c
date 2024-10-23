@@ -38,7 +38,7 @@
 #define MAX_DATA_BUF_CNT        10
 
 static const char *TAG = "HTTP_CLIENT";
-char api_key[] = "";
+char api_key[] = CONFIG_THINKSPEAK_API_KEY;
 
 typedef struct {
     float Tempt;
@@ -104,7 +104,6 @@ static void http_task(void *pvParameters)
                 }
                 vTaskDelay(1000 / portTICK_PERIOD_MS);
             }
-            data_ready = false;
         }
 	}
 
@@ -159,7 +158,4 @@ void app_main(void)
     // Create tasks
     xTaskCreate(&http_task, "http_task",    8192, NULL, 5, NULL);
     xTaskCreate(&uart_task, "uart_task",    4096, NULL, 5, NULL);
-
-    // Initially give the semaphore to unblock task1
-    xSemaphoreGive(binary_semaphore);
 }

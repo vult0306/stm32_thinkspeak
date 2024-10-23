@@ -1,0 +1,7 @@
+menu "ThinkSpeak API KEY Configuration"
+    config THINKSPEAK_API_KEY
+        string "ThinkSpeak API KEY"
+        default "your_api_key"
+        help
+            ThinkSpeak API KEY.
+endmenu
