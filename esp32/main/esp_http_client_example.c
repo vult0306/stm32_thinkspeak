@@ -25,6 +25,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_system.h"
+#include "freertos/semphr.h"
 
 #include "esp_http_client.h"
 #include "driver/uart.h"
@@ -33,15 +34,20 @@
 #define MAX_HTTP_RECV_BUFFER    512
 #define MAX_HTTP_OUTPUT_BUFFER  2048
 
-#define RX_BUF_SIZE             1024
 #define RXD_PIN                 (GPIO_NUM_5)
+#define MAX_DATA_BUF_CNT        10
 
 static const char *TAG = "HTTP_CLIENT";
 char api_key[] = "";
 
-double temperature = 1.2;
-double humidity = 2.3;
+typedef struct {
+    float Tempt;
+    float Humid;
+} Dht22_t;
 
+// Create a binary semaphore handle
+SemaphoreHandle_t binary_semaphore;
+Dht22_t data_buffer[MAX_DATA_BUF_CNT];
 
 void init_uart(void)
 {
@@ -53,7 +59,7 @@ void init_uart(void)
         .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
         .source_clk = UART_SCLK_DEFAULT,
     };
-    uart_driver_install(UART_NUM_1, RX_BUF_SIZE * 2, 0, 0, NULL, 0);
+    uart_driver_install(UART_NUM_1, MAX_DATA_BUF_CNT * sizeof(Dht22_t) * 2, 0, 0, NULL, 0);
     uart_param_config(UART_NUM_1, &uart_config);
     uart_set_pin(UART_NUM_1, UART_PIN_NO_CHANGE, RXD_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
 }
@@ -76,32 +82,30 @@ static void http_task(void *pvParameters)
 	esp_http_client_set_header(client, "Content-Type", "application/x-www-form-urlencoded");
 	while (1)
 	{
-		vTaskDelay(10000 / portTICK_PERIOD_MS);
-		strcpy(post_data, "");
-		snprintf(post_data, sizeof(post_data), data, api_key, temperature, humidity);
-		ESP_LOGI(TAG, "post = %s", post_data);
-        esp_http_client_set_url(client, post_data);
+        if (xSemaphoreTake(binary_semaphore, portMAX_DELAY)) {
+            for (int i=0; i<MAX_DATA_BUF_CNT; i++) {
+                strcpy(post_data, "");
+                snprintf(post_data, sizeof(post_data), data, api_key, data_buffer[i].Tempt, data_buffer[i].Humid);
+                ESP_LOGI(TAG, "post = %s", post_data);
+                esp_http_client_set_url(client, post_data);
 
-		err = esp_http_client_perform(client);
-
-		if (err == ESP_OK)
-		{
-			int status_code = esp_http_client_get_status_code(client);
-			if (status_code == 200)
-			{
-				ESP_LOGI(TAG, "Message sent Successfully");
-			}
-			else
-			{
-				ESP_LOGI(TAG, "Message sent Failed");				
-				break;
-			}
-		}
-		else
-		{
-			ESP_LOGI(TAG, "Message sent Failed");
-			break;
-		}
+                err = esp_http_client_perform(client);
+                if (err == ESP_OK) {
+                    int status_code = esp_http_client_get_status_code(client);
+                    if (status_code == 200) {
+                        ESP_LOGI(TAG, "Message sent Successfully");
+                    } else {
+                        ESP_LOGI(TAG, "Message sent Failed");				
+                        break;
+                    }
+                } else {
+                    ESP_LOGI(TAG, "Message sent Failed");
+                    break;
+                }
+                vTaskDelay(1000 / portTICK_PERIOD_MS);
+            }
+            data_ready = false;
+        }
 	}
 
 	esp_http_client_cleanup(client);
@@ -111,18 +115,20 @@ static void http_task(void *pvParameters)
 
 static void uart_task(void *arg)
 {
-    static const char *uart_task_TAG = "uart_task";
-    esp_log_level_set(uart_task_TAG, ESP_LOG_INFO);
-    uint8_t* data = (uint8_t*) malloc(RX_BUF_SIZE + 1);
+    static const char *TAG = "uart_task";
+    char print_buf[64];
+    esp_log_level_set(TAG, ESP_LOG_INFO);
+
     while (1) {
-        const int rxBytes = uart_read_bytes(UART_NUM_1, data, RX_BUF_SIZE, 1000 / portTICK_PERIOD_MS);
+        const int rxBytes = uart_read_bytes(UART_NUM_1, (uint8_t*)data_buffer, MAX_DATA_BUF_CNT * sizeof(Dht22_t), 1000 / portTICK_PERIOD_MS);
         if (rxBytes > 0) {
-            data[rxBytes] = 0;
-            ESP_LOGI(uart_task_TAG, "Read %d bytes: '%s'", rxBytes, data);
-            ESP_LOG_BUFFER_HEXDUMP(uart_task_TAG, data, rxBytes, ESP_LOG_INFO);
+            for (int i=0; i<MAX_DATA_BUF_CNT; i++) {
+                sprintf(print_buf, "tempt %.2f, Humid: %.2f", data_buffer[i].Tempt, data_buffer[i].Humid);
+                ESP_LOGI(TAG, "%s", print_buf);
+            }
+            xSemaphoreGive(binary_semaphore);
         }
     }
-    free(data);
 }
 
 void app_main(void)
@@ -147,6 +153,13 @@ void app_main(void)
     ESP_ERROR_CHECK(example_connect());
     ESP_LOGI(TAG, "Connected to AP, begin http example");
 
+    // Initialize the binary semaphore
+    binary_semaphore = xSemaphoreCreateBinary();
+
+    // Create tasks
     xTaskCreate(&http_task, "http_task",    8192, NULL, 5, NULL);
     xTaskCreate(&uart_task, "uart_task",    4096, NULL, 5, NULL);
+
+    // Initially give the semaphore to unblock task1
+    xSemaphoreGive(binary_semaphore);
 }

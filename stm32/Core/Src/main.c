@@ -17,7 +17,6 @@
   */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
-#include <ring_buffer.h>
 #include "main.h"
 #include "rng.h"
 #include "tim.h"
@@ -27,6 +26,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include <stdio.h>
+#include "ring_buffer.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -48,20 +48,19 @@
 
 /* USER CODE BEGIN PV */
 Dht22_t uart_buffer[BUFFER_SIZE];
-Dht22_t dht_tmp_data;
 RingBuffer_t cb;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
-
+Dht22_t RandomDht22Data(void);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
-	HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
+  HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
 }
 /* USER CODE END 0 */
 
@@ -98,34 +97,36 @@ int main(void)
   MX_TIM3_Init();
   MX_RNG_Init();
   /* USER CODE BEGIN 2 */
-  HAL_TIM_Base_Start_IT(&htim3);
-  buffer_init(&cb);
+    HAL_TIM_Base_Start_IT(&htim3);
+    buffer_init(&cb);
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  while (1)
-  {
+    while (1)
+    {
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  dht_tmp_data.Tempt = (float)HAL_RNG_GetRandomNumber(&hrng)/(float)UINT32_MAX;
-	  dht_tmp_data.Humid = (float)HAL_RNG_GetRandomNumber(&hrng)/(float)UINT32_MAX;
-    if (buffer_is_full(&cb)) {
-      //buffer is full, let's send to esp32 first
-      int i = 0;
-      while(!buffer_is_empty(&cb)) {
-        uart_buffer[i++] = buffer_read(&cb);
-      }
-      HAL_UART_Transmit(&huart3, (uint8_t*)uart_buffer, sizeof(uart_buffer), 10);// Sending in normal mode
-    } else {
-      buffer_write(&cb, dht_tmp_data);
-    }	  
-	  HAL_Delay(10);
-	  HAL_SuspendTick();
-	  HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON,PWR_SLEEPENTRY_WFI);
-	  HAL_ResumeTick();
-  }
+        if (buffer_is_full(&cb)) {
+            //get data from buffer
+            int i = 0;
+            while(!buffer_is_empty(&cb)) {
+                uart_buffer[i++] = buffer_read(&cb);
+            }
+
+            //send to uart
+            HAL_UART_Transmit(&huart3, (uint8_t*)uart_buffer, sizeof(uart_buffer), 100);// Sending in normal mode
+        } else {
+            //put data to buffer
+            buffer_write(&cb, RandomDht22Data());
+        }
+
+        //enter low-power mode
+        HAL_SuspendTick();
+        HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON,PWR_SLEEPENTRY_WFI);
+        HAL_ResumeTick();
+    }
   /* USER CODE END 3 */
 }
 
@@ -181,7 +182,12 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
-
+Dht22_t RandomDht22Data(void) {
+    Dht22_t dht_data;
+    dht_data.Tempt = (float)HAL_RNG_GetRandomNumber(&hrng)/(float)UINT32_MAX;
+    dht_data.Humid = (float)HAL_RNG_GetRandomNumber(&hrng)/(float)UINT32_MAX;
+    return dht_data;
+}
 /* USER CODE END 4 */
 
 /**
