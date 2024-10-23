@@ -105,7 +105,10 @@ int main(void)
     /* USER CODE BEGIN 3 */
 	  uint8_t Test[] = "Hello World !!!\r\n"; //Data to send
 	  HAL_UART_Transmit(&huart3,Test,sizeof(Test),10);// Sending in normal mode
-	  HAL_Delay(1000);
+	  HAL_Delay(10);
+	  HAL_SuspendTick();
+	  HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON,PWR_SLEEPENTRY_WFI);
+	  HAL_ResumeTick();
   }
   /* USER CODE END 3 */
 }
