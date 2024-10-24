@@ -55,6 +55,12 @@ ESP send the received data to ThinkSpeak server
 
 * In Low Power mode, it consume ~4.30 mA
 
+
+### 8. For improvement:
+* Using UART with DMA to save CPU cycle
+* Adding CRC check for message between STM32 & ESP32
+* Adding Network Manager to manage wifi connection (connect, disconnect, retry...)
+
 ![image](https://github.com/user-attachments/assets/ce91ca3d-5165-46e0-939e-08e5dc268e23)
 
 
