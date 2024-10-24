@@ -8,6 +8,15 @@ STM32
 ESP32
   - When received data from STM32, send to ThinkSpeak server
 
+## Data logger on Thinkspeak server
+* Temperature:
+
+    ![image](https://github.com/user-attachments/assets/b2252287-02c8-46d2-9512-236681e30963)
+
+* Humidity:
+
+    ![image](https://github.com/user-attachments/assets/4f6d61a2-17bd-42af-91ef-201dea8d9f12)
+
 
 ## Development Environment Setup
 ### 1. Install esp-idf release v5.3 at (https://github.com/espressif/esp-idf/tree/release/v5.3)
