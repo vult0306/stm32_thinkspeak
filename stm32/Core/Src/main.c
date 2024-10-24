@@ -60,7 +60,6 @@ Dht22_t RandomDht22Data(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
-  HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
 }
 /* USER CODE END 0 */
 

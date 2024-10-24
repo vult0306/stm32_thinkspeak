@@ -4,7 +4,7 @@ STM32 collects sensor data and send to ESP via UART/SPI
 
 ESP send the received data to ThinkSpeak server
 
-## ESP32 Development Environment Setup
+## Development Environment Setup
 ### 1. Install esp-idf release v5.3 at (https://github.com/espressif/esp-idf/tree/release/v5.3)
 ### 2. Setup ThinkSpeak API key
 * Execute "make menuconfig" to enter the configuration screen, navigate to "ThinkSpeak API Key Configuration" screen

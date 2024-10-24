@@ -385,6 +385,12 @@ CONFIG_PARTITION_TABLE_MD5=y
 # end of Partition Table
 
 #
+# ThinkSpeak API KEY Configuration
+#
+CONFIG_THINKSPEAK_API_KEY="your_api_key"
+# end of ThinkSpeak API KEY Configuration
+
+#
 # Example Connection Configuration
 #
 CONFIG_ENV_GPIO_RANGE_MIN=0
