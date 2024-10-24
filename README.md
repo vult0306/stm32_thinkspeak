@@ -1,7 +1,7 @@
 # Example of STM32 Client periodically send data to ThinkSpeak server
 
 STM32
-  - Collects sensor data every 2s and store to a buffer
+  - Collects sensor data every 10s and store to a buffer of 10 data pair(tempt, humid)
   - Stay in Low-Power mode when not collecting data
   - When the buffer is full, send the whole buffer to ESP32 via UART
 

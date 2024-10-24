@@ -36,6 +36,7 @@
 
 #define RXD_PIN                 (GPIO_NUM_5)
 #define MAX_DATA_BUF_CNT        10
+#define MAX_RETRY               3
 
 static const char *TAG = "HTTP_CLIENT";
 char api_key[] = CONFIG_THINKSPEAK_API_KEY;
@@ -161,7 +162,8 @@ static void http_task(void *pvParameters)
 	char data[] = "/update?api_key=%s&field1=%.2f&field2=%.2f";
 	char post_data[200];
 	esp_err_t err;
-
+    esp_http_client_handle_t client = NULL;
+    static bool server_connected = false;
 	esp_http_client_config_t config = {
 		.url = thingspeak_url,
 		.method = HTTP_METHOD_GET,
@@ -169,36 +171,58 @@ static void http_task(void *pvParameters)
         .transport_type = HTTP_TRANSPORT_OVER_SSL,
         .crt_bundle_attach = esp_crt_bundle_attach,
 	};
-    esp_http_client_handle_t client = esp_http_client_init(&config);
 	while (1)
 	{
         if (xSemaphoreTake(binary_semaphore, portMAX_DELAY)) {
-            esp_http_client_set_header(client, "Content-Type", "application/x-www-form-urlencoded");
-            for (int i=0; i<MAX_DATA_BUF_CNT; i++) {
-                strcpy(post_data, "");
-                snprintf(post_data, sizeof(post_data), data, api_key, data_buffer[i].Tempt, data_buffer[i].Humid);
-                ESP_LOGI(TAG, "post = %s", post_data);
-                esp_http_client_set_url(client, post_data);
 
-                err = esp_http_client_perform(client);
-                if (err == ESP_OK) {
-                    int status_code = esp_http_client_get_status_code(client);
-                    if (status_code == 200) {
-                        ESP_LOGI(TAG, "Message sent Successfully");
+            int retry_cnt = 0;
+            int data_sent_cnt = 0;
+            while (retry_cnt++ < MAX_RETRY && data_sent_cnt<MAX_DATA_BUF_CNT) {
+
+                //init client
+                if (!server_connected) {
+                    client = esp_http_client_init(&config);
+                    //set client header
+                    esp_http_client_set_header(client, "Content-Type", "application/x-www-form-urlencoded");
+                }
+
+                //start sending data buffer
+                while (data_sent_cnt < MAX_DATA_BUF_CNT) {
+                    strcpy(post_data, "");
+                    snprintf(post_data, sizeof(post_data), data, api_key, data_buffer[data_sent_cnt].Tempt, data_buffer[data_sent_cnt].Humid);
+                    ESP_LOGI(TAG, "post = %s", post_data);
+                    esp_http_client_set_url(client, post_data);
+
+                    err = esp_http_client_perform(client);
+                    if (err == ESP_OK) {
+                        int status_code = esp_http_client_get_status_code(client);
+                        if (status_code == 200) {
+                            server_connected = true;
+                            data_sent_cnt += 1;
+                            ESP_LOGI(TAG, "Message sent Successfully");
+                        } else {
+                            ESP_LOGI(TAG, "Message sent Failed");
+                            break;
+                        }
+                        // small break before sending the next data
+                        vTaskDelay(1000 / portTICK_PERIOD_MS);
                     } else {
-                        ESP_LOGI(TAG, "Message sent Failed");				
+                        ESP_LOGI(TAG, "Message sent Failed");
                         break;
                     }
-                } else {
-                    ESP_LOGI(TAG, "Message sent Failed");
-                    break;
                 }
-                vTaskDelay(500 / portTICK_PERIOD_MS);
+
+                if (err != ESP_OK) {
+                    //cleanup connection if sent fails
+                    server_connected = false;
+                    esp_http_client_cleanup(client);
+
+                    //wait for a bit before retry
+                    vTaskDelay(10000 / portTICK_PERIOD_MS);
+                }
             }
         }
 	}
-
-	esp_http_client_cleanup(client);
 	vTaskDelete(NULL);
 
 }
