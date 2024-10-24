@@ -1,7 +1,20 @@
 menu "ThinkSpeak API KEY Configuration"
     config THINKSPEAK_API_KEY
         string "ThinkSpeak API KEY"
-        default "your_api_key"
+        default ""
         help
             ThinkSpeak API KEY.
+endmenu
+
+menu "Wifi Configuration"
+    config EXAMPLE_WIFI_SSID
+        string "SSID"
+        default "myssid"
+        help
+            ssid name.
+    config EXAMPLE_WIFI_PASSWORD
+        string "PASSWORD"
+        default "mypassword"
+        help
+            password.
 endmenu

@@ -1,8 +1,13 @@
 # Example of STM32 Client periodically send data to ThinkSpeak server
 
-STM32 collects sensor data and send to ESP via UART/SPI
+STM32
+  - Collects sensor data every 2s and store to a buffer
+  - Stay in Low-Power mode when not collecting data
+  - When the buffer is full, send the whole buffer to ESP32 via UART
 
-ESP send the received data to ThinkSpeak server
+ESP32
+  - When received data from STM32, send to ThinkSpeak server
+
 
 ## Development Environment Setup
 ### 1. Install esp-idf release v5.3 at (https://github.com/espressif/esp-idf/tree/release/v5.3)
@@ -38,7 +43,7 @@ ESP send the received data to ThinkSpeak server
 
 
 ### 5. Hardware Setup
-* Connect STM32 PD9 to ESP32 IO5 for UART communication
+* Connect STM32 PD8 to ESP32 IO5 for UART communication
 
   ![image](https://github.com/user-attachments/assets/7c866d19-a44a-4271-8830-bdcc32f8802d)
 
