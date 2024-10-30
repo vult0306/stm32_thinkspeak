@@ -17,6 +17,9 @@ ESP32
 
     ![image](https://github.com/user-attachments/assets/4f6d61a2-17bd-42af-91ef-201dea8d9f12)
 
+* Link to the thinkspeak channel public view
+
+  https://thingspeak.mathworks.com/channels/2710669
 
 ## Development Environment Setup
 ### 1. Install esp-idf release v5.3 at (https://github.com/espressif/esp-idf/tree/release/v5.3)
@@ -54,7 +57,8 @@ ESP32
 ### 5. Hardware Setup
 * Connect STM32 PD8 to ESP32 IO5 for UART communication
 
-  ![image](https://github.com/user-attachments/assets/7c866d19-a44a-4271-8830-bdcc32f8802d)
+  ![image](https://github.com/user-attachments/assets/d9cbb955-5f97-4855-8c61-7fe539b3739b)
+
 
 
 ### 6. ESP32 Compile and Run
@@ -62,17 +66,26 @@ ESP32
   ```idf.py build flash monitor -p /dev/ttyUSBx```
 
 ### 7. Power Consumption Measurement
-* In Normal mode, it consume ~6.94 mA
+* f (HCLK) = 2MHz
 
-![image](https://github.com/user-attachments/assets/a497a268-f43b-4fd4-bf5c-9c0eec126215)
+![img_v3_02g5_e7ac1623-3afd-4f31-bcc8-8500efaea12h](https://github.com/user-attachments/assets/abeb43d7-2237-4739-9b5b-7d4495f1401c)
 
 
-* In Low Power mode, it consume ~4.30 mA
+* In Run mode, it consume ~4.65 mA
 
-![image](https://github.com/user-attachments/assets/ce91ca3d-5165-46e0-939e-08e5dc268e23)
+![img_v3_02g5_b8d4db30-b47f-4b1d-804e-c9db0f0fdd2h](https://github.com/user-attachments/assets/d0c6f95d-e2e4-4c27-9431-c070ef3c4e4d)
+
+
+
+* In Sleep mode, it consume ~3.71 mA
+
+![img_v3_02g5_e24cb8cf-d115-435f-83c5-09fc76562e9h](https://github.com/user-attachments/assets/acbf7e61-bb92-4fed-9864-03c8d4ba55e3)
+
 
 
 ### 8. For improvement:
 * Using UART with DMA to save CPU cycle
+* Compress raw data to save space & bandwidth
+* Storing data to local storage (flash, sdcard...) if no internet connection
 * Adding CRC check for message between STM32 & ESP32
 * Adding Network Manager to manage wifi connection (connect, disconnect, retry...)
