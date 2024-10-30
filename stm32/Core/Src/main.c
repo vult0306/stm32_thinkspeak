@@ -106,7 +106,8 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-        if (buffer_is_full(&cb)) {
+       // upload the buffer if it's full
+       if (buffer_is_full(&cb)) {
             //get data from buffer
             int i = 0;
             while(!buffer_is_empty(&cb)) {
@@ -115,10 +116,10 @@ int main(void)
 
             //send to uart
             HAL_UART_Transmit(&huart3, (uint8_t*)uart_buffer, sizeof(uart_buffer), 100);// Sending in normal mode
-        } else {
-            //put data to buffer
-            buffer_write(&cb, RandomDht22Data());
         }
+
+        //put new data to buffer
+        buffer_write(&cb, RandomDht22Data());
 
         //enter low-power mode
         HAL_TIM_Base_Start_IT(&htim3);
